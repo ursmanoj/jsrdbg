@@ -51,8 +51,8 @@ static JSClass global_class = {
 };
 
 // Example script.
-extern char _binary_example_js_start[];
-extern char _binary_example_js_end[];
+//extern char _binary_example_js_start[];
+//extern char _binary_example_js_end[];
 
 // Naive implementation of the printing to the standard output.
 JSBool JS_fn_print( JSContext *cx, unsigned int argc, Value *vp ) {
@@ -80,18 +80,47 @@ static JSFunctionSpec JDB_Funcs[] = {
 // Component responsible for loading script's source code if the JS engine cannot provide it.
 class ScriptLoader : public IJSScriptLoader {
 public:
+	string mScript;
 
     ScriptLoader() { }
 
     ~ScriptLoader() { }
 
     int load( JSContext *cx, const std::string &path, std::string &script ) {
-        if( path == "example.js" ) {
+        /*if( path == "example.js" ) {
             script = string(_binary_example_js_start, _binary_example_js_end - _binary_example_js_start);
             return JSR_ERROR_NO_ERROR;
-        }
-        return JSR_ERROR_FILE_NOT_FOUND;
+        }*/
+        string fullpath = "./src/js/";
+        fullpath += path;
+
+		script = readJSFile(fullpath.c_str());
+		mScript = script;
+		cout<<"script file contents:" <<script;
+		return JSR_ERROR_NO_ERROR;
+		
+        //return JSR_ERROR_FILE_NOT_FOUND;
     }
+private:
+	char * readJSFile(const char * fileName) {
+		FILE* fp;
+		// Open java script file.
+		if (!(fp = fopen(fileName, "r"))) {
+			cout << "Failed to open javascript: "<<fileName<<endl;
+			return NULL;
+		}
+		long file_len = 0;
+		fseek(fp, 0, SEEK_END);
+		file_len = ftell(fp);
+		fseek(fp, 0, SEEK_SET);
+
+		char * buf = new char[file_len + 1];
+		// Read java script file.
+		int len = fread(buf, 1, file_len, fp);
+		buf[file_len] = 0;
+		fclose(fp);
+		return buf;
+	}
 
 };
 
@@ -139,9 +168,11 @@ bool RunScript( JSContext *cx, JSRemoteDebugger &dbg ) {
     JS_GC( JS_GetRuntime( cx ) );
 
     // Runs JS script.
-    result = JS_EvaluateScript( cx, global.get(), _binary_example_js_start, _binary_example_js_end  -_binary_example_js_start, "example.js", 0, &rval);
+    //result = JS_EvaluateScript( cx, global.get(), _binary_example_js_start, _binary_example_js_end  -_binary_example_js_start, "example.js", 0, &rval);
+    result = JS_EvaluateScript( cx, global.get(), loader.mScript.c_str(), loader.mScript.length(), "example.js", 0, &rval);
+	cout<<"Script file:(len="<<loader.mScript.length()<<")"<<loader.mScript<<endl;
 
-    cout << "Application has been finished." << endl;
+    cout << "Application has been finished.result: "<<result << endl;
 
     return static_cast<bool>( result );
 }
@@ -156,6 +187,8 @@ bool RunDbgScript( JSContext *cx ) {
     cfg.setTcpHost(JSR_DEFAULT_TCP_BINDING_IP);
     cfg.setTcpPort(JSR_DEFAULT_TCP_PORT);
     cfg.setScriptLoader(&loader);
+	string tmp;
+	loader.load(NULL, "example.js",tmp);
 
     // Configure debugger engine.
     JSDbgEngineOptions dbgOptions;
