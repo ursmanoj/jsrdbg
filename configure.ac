@@ -1,7 +1,7 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_PREREQ([2.69])
+AC_PREREQ([2.68])
 AC_INIT([jsrdbg], [0.0.8], [slawomir@wojtasiak.com])
 AM_INIT_AUTOMAKE
 LT_PREREQ([2.2])

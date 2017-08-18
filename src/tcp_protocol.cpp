@@ -577,7 +577,7 @@ bool TCPProtocol::recvCommand(int pipe, uint8_t &command, uint32_t &arg) {
         return false;
     }
     command = buffer[0];
-    arg = ::htonl(*((uint32_t*)(buffer+1)));
+    arg = htonl(*((uint32_t*)(buffer+1)));
     return true;
 }
 
@@ -590,7 +590,7 @@ void TCPProtocol::interrupt() {
 void TCPProtocol::sendCommand( int pipe, uint8_t command, uint32_t args ) {
     uint8_t buffer[5];
     buffer[0] = command;
-    uint32_t n_socket = ::htonl( args );
+    uint32_t n_socket = htonl( args );
     ::memcpy( buffer + 1, &n_socket, sizeof( uint32_t ) );
     int rc = 0;
     int again = 0;
