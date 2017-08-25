@@ -168,8 +168,14 @@ bool RunScript( JSContext *cx, JSRemoteDebugger &dbg ) {
     JS_GC( JS_GetRuntime( cx ) );
 
     // Runs JS script.
+    string tmp;
+	loader.load(NULL, "example.js",tmp);
     //result = JS_EvaluateScript( cx, global.get(), _binary_example_js_start, _binary_example_js_end  -_binary_example_js_start, "example.js", 0, &rval);
     result = JS_EvaluateScript( cx, global.get(), loader.mScript.c_str(), loader.mScript.length(), "example.js", 0, &rval);
+	cout<<"Script file:(len="<<loader.mScript.length()<<")"<<loader.mScript<<endl;
+
+	loader.load(NULL, "example2.js",tmp);
+	result = JS_EvaluateScript( cx, global.get(), loader.mScript.c_str(), loader.mScript.length(), "example2.js", 0, &rval);
 	cout<<"Script file:(len="<<loader.mScript.length()<<")"<<loader.mScript<<endl;
 
     cout << "Application has been finished.result: "<<result << endl;
@@ -183,30 +189,40 @@ bool RunDbgScript( JSContext *cx ) {
     // Initialize debugger.
 
     // Configure remote debugger.
-    JSRemoteDebuggerCfg cfg;
-    cfg.setTcpHost(JSR_DEFAULT_TCP_BINDING_IP);
-    cfg.setTcpPort(JSR_DEFAULT_TCP_PORT);
-    cfg.setScriptLoader(&loader);
-	string tmp;
-	loader.load(NULL, "example.js",tmp);
+    static bool portOpened = false;
+
+	if(portOpened == false) {
+		portOpened = true;
+	    JSRemoteDebuggerCfg cfg;
+	    cfg.setTcpHost(JSR_DEFAULT_TCP_BINDING_IP);
+	    cfg.setTcpPort(JSR_DEFAULT_TCP_PORT);
+	}
+    //cfg.setScriptLoader(&loader);
+	//string tmp;
+	//loader.load(NULL, "example.js",tmp);
 
     // Configure debugger engine.
     JSDbgEngineOptions dbgOptions;
     // Suspend script just after starting it.
     dbgOptions.suspended();
 
-    JSRemoteDebugger dbg( cfg );
+    //JSRemoteDebugger dbg( cfg );
+    static JSRemoteDebugger dbg;
 
     if( dbg.install( cx, "example-JS", dbgOptions ) != JSR_ERROR_NO_ERROR ) {
         cout << "Cannot install debugger." << endl;
         return false;
     }
 
-    if( dbg.start() != JSR_ERROR_NO_ERROR ) {
-        dbg.uninstall( cx );
-        cout << "Cannot start debugger." << endl;
-        return false;
-    }
+	static bool started = false;
+	if(started == false) {
+		started = true;
+	    if( dbg.start() != JSR_ERROR_NO_ERROR ) {
+	        dbg.uninstall( cx );
+	        cout << "Cannot start debugger." << endl;
+	        return false;
+	    }
+	}
 
     bool result = RunScript( cx, dbg );
 
@@ -216,8 +232,9 @@ bool RunDbgScript( JSContext *cx ) {
     return result;
 }
 
-int main(int argc, char **argv) {
+void * context_thread(void *arg) {
 
+	//char * scriptName= arg;
     setlocale(LC_ALL, "");
 
     // Creates new inner compartment in the runtime.
@@ -246,5 +263,21 @@ int main(int argc, char **argv) {
     JS_DestroyContext(cx);
     JS_DestroyRuntime(rt);
     JS_ShutDown();
-
+	return nullptr;
 }
+
+static pthread_t thread1;
+static pthread_t thread2;
+
+static void startTestThread(pthread_t *ptr_thread) {
+
+	int ret = pthread_create(ptr_thread, NULL, &context_thread, NULL);
+	cout <<"Thread create: " <<ret<<endl;
+}
+
+int main(int argc, char **argv) { 
+	startTestThread(&thread1);
+	startTestThread(&thread2);
+	while(true);
+}
+
