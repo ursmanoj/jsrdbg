@@ -171,8 +171,18 @@ bool RunScript( JSContext *cx, JSRemoteDebugger &dbg ) {
     string tmp;
 	loader.load(NULL, "example.js",tmp);
     //result = JS_EvaluateScript( cx, global.get(), _binary_example_js_start, _binary_example_js_end  -_binary_example_js_start, "example.js", 0, &rval);
-    result = JS_EvaluateScript( cx, global.get(), loader.mScript.c_str(), loader.mScript.length(), "3630f6c5-e056-4c64-bb07-c4b134bae4d7.js", 0, &rval);
+    //result = JS_EvaluateScript( cx, global.get(), loader.mScript.c_str(), loader.mScript.length(), "3630f6c5-e056-4c64-bb07-c4b134bae4d7.js", 0, &rval);
 	//cout<<"Script file:(len="<<loader.mScript.length()<<")"<<loader.mScript<<endl;
+    JSScript * jss = JS_CompileScript(cx, global.get(), loader.mScript.c_str(), loader.mScript.length(), "3630f6c5-e056-4c64-bb07-c4b134bae4d7.js", 0);
+	jsval res;
+	if (!jss) {
+		cout << "Error compiling" << endl;
+		return false;   /* compilation error */
+	}
+	 if (!JS_ExecuteScript(cx, global.get(), jss, &res)) {
+		cout << "Error JS_ExecuteScript" << endl;
+		return false;   /* compilation error */
+	}
 #if 0//2nd script
 	loader.load(NULL, "example2.js",tmp);
 	result = JS_EvaluateScript( cx, global.get(), loader.mScript.c_str(), loader.mScript.length(), "example2.js", 0, &rval);
