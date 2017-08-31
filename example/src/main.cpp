@@ -96,7 +96,7 @@ public:
 
 		script = readJSFile(fullpath.c_str());
 		mScript = script;
-		cout<<"script file contents:" <<script;
+		//cout<<"script file contents:" <<script;
 		return JSR_ERROR_NO_ERROR;
 		
         //return JSR_ERROR_FILE_NOT_FOUND;
@@ -150,14 +150,14 @@ bool RunScript( JSContext *cx, JSRemoteDebugger &dbg ) {
         cout << "Cannot initialize utility functions." << endl;
         return false;
     }
-
+#if 1 //register only after script is evaluated, and before calling function
     // Register newly created global object into the debugger,
     // in order to make it debuggable.
     if( dbg.addDebuggee( cx, global ) != JSR_ERROR_NO_ERROR ) {
         cout << "Cannot add debuggee." << endl;
         return false;
     }
-
+#endif
     Value rval;
     JSBool result;
 
@@ -171,12 +171,33 @@ bool RunScript( JSContext *cx, JSRemoteDebugger &dbg ) {
     string tmp;
 	loader.load(NULL, "example.js",tmp);
     //result = JS_EvaluateScript( cx, global.get(), _binary_example_js_start, _binary_example_js_end  -_binary_example_js_start, "example.js", 0, &rval);
-    result = JS_EvaluateScript( cx, global.get(), loader.mScript.c_str(), loader.mScript.length(), "example.js", 0, &rval);
-	cout<<"Script file:(len="<<loader.mScript.length()<<")"<<loader.mScript<<endl;
-
+    result = JS_EvaluateScript( cx, global.get(), loader.mScript.c_str(), loader.mScript.length(), "3630f6c5-e056-4c64-bb07-c4b134bae4d7.js", 0, &rval);
+	//cout<<"Script file:(len="<<loader.mScript.length()<<")"<<loader.mScript<<endl;
+#if 0//2nd script
 	loader.load(NULL, "example2.js",tmp);
 	result = JS_EvaluateScript( cx, global.get(), loader.mScript.c_str(), loader.mScript.length(), "example2.js", 0, &rval);
 	cout<<"Script file:(len="<<loader.mScript.length()<<")"<<loader.mScript<<endl;
+#endif
+#if 0 
+    // Register newly created global object into the debugger,
+    // in order to make it debuggable.
+    if( dbg.addDebuggee( cx, global ) != JSR_ERROR_NO_ERROR ) {
+        cout << "Cannot add debuggee." << endl;
+        return false;
+    }
+#endif
+	int input;
+
+	cout<<"Enter any key to run func3"<<endl;
+	cin>>input;
+	//while(true);
+	
+	jsval argv[1];
+	JS::RootedValue r(cx);	
+
+	if (JS_CallFunctionName(cx, global, "func3", 1, argv, r.address())) {
+    	cout<<"Successfull function call"<<endl;    
+	}
 
     cout << "Application has been finished.result: "<<result << endl;
 
@@ -190,13 +211,17 @@ bool RunDbgScript( JSContext *cx ) {
 
     // Configure remote debugger.
     static bool portOpened = false;
+	//static JSRemoteDebuggerCfg cfg;
+	JSRemoteDebuggerCfg cfg;
 
 	if(portOpened == false) {
 		portOpened = true;
-	    JSRemoteDebuggerCfg cfg;
+		cout<<"Opening port for debugging"<<endl;
+	    
 	    cfg.setTcpHost(JSR_DEFAULT_TCP_BINDING_IP);
 	    cfg.setTcpPort(JSR_DEFAULT_TCP_PORT);
 	}
+	JSRemoteDebugger dbg(cfg);
     //cfg.setScriptLoader(&loader);
 	//string tmp;
 	//loader.load(NULL, "example.js",tmp);
@@ -204,10 +229,11 @@ bool RunDbgScript( JSContext *cx ) {
     // Configure debugger engine.
     JSDbgEngineOptions dbgOptions;
     // Suspend script just after starting it.
-    dbgOptions.suspended();
+	dbgOptions.suspended();
+	dbgOptions.continueWhenNoConnections();
 
     //JSRemoteDebugger dbg( cfg );
-    static JSRemoteDebugger dbg;
+    
 
     if( dbg.install( cx, "example-JS", dbgOptions ) != JSR_ERROR_NO_ERROR ) {
         cout << "Cannot install debugger." << endl;
@@ -217,9 +243,10 @@ bool RunDbgScript( JSContext *cx ) {
 	static bool started = false;
 	if(started == false) {
 		started = true;
-	    if( dbg.start() != JSR_ERROR_NO_ERROR ) {
+		int ret=dbg.start();
+	    if( ret!= JSR_ERROR_NO_ERROR ) {
 	        dbg.uninstall( cx );
-	        cout << "Cannot start debugger." << endl;
+	        cout << "Cannot start debugger: " <<ret<< endl;
 	        return false;
 	    }
 	}
@@ -275,9 +302,13 @@ static void startTestThread(pthread_t *ptr_thread) {
 	cout <<"Thread create: " <<ret<<endl;
 }
 
+void tester() {
+	//string path = new string("/home/manoj/Test/out/data/read_write/dth/device_def/3630f6c5-e056-4c64-bb07-c4b134bae4d7/profile.js");
+}
+
 int main(int argc, char **argv) { 
 	startTestThread(&thread1);
-	startTestThread(&thread2);
+	//startTestThread(&thread2);
 	while(true);
 }
 
