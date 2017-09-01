@@ -1,5 +1,54 @@
 #include "JSThread.h"
 
+class ScriptLoader : public IJSScriptLoader {
+public:
+	string mScript;
+
+    ScriptLoader() { }
+
+    ~ScriptLoader() { }
+
+    int load( JSContext *cx, const std::string &path, std::string &script ) {
+        /*if( path == "example.js" ) {
+            script = string(_binary_example_js_start, _binary_example_js_end - _binary_example_js_start);
+            return JSR_ERROR_NO_ERROR;
+        }*/
+        string fullpath = "./src/js/";
+        fullpath += path;
+
+		script = readJSFile(fullpath.c_str());
+		mScript = script;
+		//cout<<"script file contents:" <<script;
+		return JSR_ERROR_NO_ERROR;
+		
+        //return JSR_ERROR_FILE_NOT_FOUND;
+    }
+private:
+	char * readJSFile(const char * fileName) {
+		FILE* fp;
+		// Open java script file.
+		if (!(fp = fopen(fileName, "r"))) {
+			cout << "Failed to open javascript: "<<fileName<<endl;
+			return NULL;
+		}
+		long file_len = 0;
+		fseek(fp, 0, SEEK_END);
+		file_len = ftell(fp);
+		fseek(fp, 0, SEEK_SET);
+
+		char * buf = new char[file_len + 1];
+		// Read java script file.
+		int len = fread(buf, 1, file_len, fp);
+		buf[file_len] = 0;
+		fclose(fp);
+		return buf;
+	}
+
+};
+
+ScriptLoader loader;
+
+
 static JSClass global_class = {
     "global",
     JSCLASS_GLOBAL_FLAGS,
@@ -11,43 +60,62 @@ static JSClass global_class = {
     JS_ResolveStub,
     JS_ConvertStub
 };
+
+static JSBool JS_fn_print( JSContext *cx, unsigned int argc, Value *vp ) {
+
+    CallArgs args = CallArgsFromVp(argc, vp);
+
+    char *chars = JS_EncodeStringToUTF8( cx, args.get(0).toString() );
+    if( !chars ) {
+        JS_ReportError( cx, "Cannot convert JS string into a native UTF8 one." );
+        return JS_FALSE;
+    }
+
+    cout << chars << endl;
+
+    JS_free( cx, chars );
+
+    return JS_TRUE;
+}
+
 static JSFunctionSpec JDB_Funcs[] = {
    { "print", JSOP_WRAPPER ( JS_fn_print ), 0, JSPROP_PERMANENT | JSPROP_ENUMERATE },
    { nullptr },
 };
 
-struct script_info {
+/*struct script_info {
 	string path;
 	JSScript * jss;
-};
+};*/
 
-static script_info scripts[] = {
-	{"example.js", NULL},
-	{"example1.js", NULL},
-	{"example2.js", NULL},
-	{"example3.js" NULL}
+static string scripts[] = {
+	"example.js",
+	"example1.js",
+	"example2.js",
+	"example3.js"
 };
-static int num_of_scripts = sizeof(scripts)/sizeof(scripts[0]);
+static const int num_of_scripts = sizeof(scripts)/sizeof(scripts[0]);
 
-private void JSThread::compileAllScripts(JSContext * cx, JS::RootedObject *p_global) {
+void JSThread::compileAllScripts(JSContext * cx, JS::RootedObject *p_global, JSThread * jsThread) {
 	// TODO: compile and save JSS objects of all scripts, make an array like above
-	//compile and execute all scripts so their functions are ready to execute anytime
-	string tmp;
-	loader.load(NULL, "example.js",tmp);
-    //result = JS_EvaluateScript( cx, global.get(), _binary_example_js_start, _binary_example_js_end  -_binary_example_js_start, "example.js", 0, &rval);
-    //result = JS_EvaluateScript( cx, global.get(), loader.mScript.c_str(), loader.mScript.length(), "3630f6c5-e056-4c64-bb07-c4b134bae4d7.js", 0, &rval);
-	//cout<<"Script file:(len="<<loader.mScript.length()<<")"<<loader.mScript<<endl;
-    JSScript * jss = JS_CompileScript(cx, *p_global.get(), loader.mScript.c_str(), loader.mScript.length(), "3630f6c5-e056-4c64-bb07-c4b134bae4d7.js", 0);
-	jsval res;
-	if (!jss) {
-		cout << "Error compiling" << endl;
-		return false;   /* compilation error */
-	}
-	 
-	
+
+	for(int i=0;i<num_of_scripts;i++) {
+		//compile and execute all scripts so their functions are ready to execute anytime
+		string tmp;
+		loader.load(NULL, scripts[i],tmp);
+		
+	    jsThread->mJssList[i] = JS_CompileScript(cx, p_global->get(), loader.mScript.c_str(), loader.mScript.length(), scripts[i].c_str(), 0);
+
+		jsval res;
+		if (!jsThread->mJssList[i]) {
+			cout << "Error compiling" << endl;
+			return;   /* compilation error */
+		}
+	}	 
 }
 
-private bool JSThread::RunScript( JSContext *cx) {
+// TODO: later rename the private functions to more appropriate names
+bool JSThread::RunScript( JSContext *cx, JSThread * jsThread) {
 
     // New global object gets it's own compartments too.
     CompartmentOptions options;
@@ -82,23 +150,24 @@ private bool JSThread::RunScript( JSContext *cx) {
     JS_GC( JS_GetRuntime( cx ) );
 
     // Runs JS script.
-    compileAllScripts(cx);
+    compileAllScripts(cx, &global, jsThread);
     //int input;
 
 	//cout<<"Enter any key to run func3"<<endl;
 	//cin>>input;
 	while(true) {
-		sem_wait(&mSemaphore);
+		sem_wait(&jsThread->mSemaphore);
 		jsval argv[1];
 		JS::RootedValue r(cx);
 		jsval res;
 
-		if (!JS_ExecuteScript(cx, global.get(), scripts[mScriptIndex].jss, &res)) {
+		if (!JS_ExecuteScript(cx, global.get(), jsThread->mJssList[jsThread->mScriptIndex], &res)) {
 			cout << "Error JS_ExecuteScript" << endl;
 			return false;   /* compilation error */
 		}
 
-		if (JS_CallFunctionName(cx, global, mFuncName.c_str(), 1, argv, r.address())) {
+		if (JS_CallFunctionName(cx, global, jsThread->mFuncName.c_str(), 1, argv, r.address())) {
+			cout<<"File->FuncName: "<<scripts[jsThread->mScriptIndex]<<"->"<<jsThread->mFuncName<<" ";
 	    	cout<<"Successfull function call"<<endl;    
 		}
 	}
@@ -109,18 +178,18 @@ private bool JSThread::RunScript( JSContext *cx) {
 }
 
 // Initializes debugger and runs script into its scope.
-private bool JSThread::RunDbgScript( JSContext *cx ) {
+bool JSThread::RunDbgScript( JSContext *cx, JSThread * jsThread ) {
 
     // Initialize debugger.
 
-   JSRemoteDebugUtil::registerContext(cx);
+   JSRemoteDebugUtil::registerContext(cx, jsThread->mThreadName);
 
-    bool result = RunScript(cx);
+    bool result = RunScript(cx, jsThread);
 
     return result;
 }
 
-private void * JSThread::context_thread(void *arg) {
+void * JSThread::context_thread(void *arg) {
 
 	//char * scriptName= arg;
     setlocale(LC_ALL, "");
@@ -144,7 +213,7 @@ private void * JSThread::context_thread(void *arg) {
         exit(1);
     }
 
-    if( !RunDbgScript( cx ) ) {
+    if( !RunDbgScript( cx, (JSThread *)arg ) ) {
         cout << "Application failed." << endl;
     }
 
@@ -155,15 +224,17 @@ private void * JSThread::context_thread(void *arg) {
 }
 
 void JSThread::startTestThread() {
-	int ret = pthread_create(&mThread, NULL, &context_thread, NULL);
-	cout <<"Thread create: " <<ret<<endl;
+	int ret = pthread_create(&mThread, NULL, &context_thread, this);
+	//cout <<"Thread create: " <<ret<<endl;
 }
 
 //Constructor
-JSThread::JSThread() {
+JSThread::JSThread(string name) {
 	if (sem_init(&mSemaphore, 0, 0) == -1)
 		cout<<"Semaphore failed"<<endl;
 
+	mJssList = new JSScript *[num_of_scripts];
+	mThreadName = name;
 	startTestThread();
 }
 
@@ -199,14 +270,14 @@ JSRemoteDebugUtil::~JSRemoteDebugUtil() {
     //dbg.uninstall( cx );
 }
 
-void JSRemoteDebugUtil::registerContext(JSContext *cx) {
+void JSRemoteDebugUtil::registerContext(JSContext *cx, string name) {
 	// Configure debugger engine.
     JSDbgEngineOptions dbgOptions;
     // Suspend script just after starting it.
     //dbgOptions.suspended();
     dbgOptions.continueWhenNoConnections();
 
-	int ret = dbg.install( cx, "SpmWrapper", dbgOptions );
+	int ret = dbg.install( cx, name.c_str(), dbgOptions );
 	
 	if( ret != JSR_ERROR_NO_ERROR ) {
 		cout << "Cannot install debugger(err="<<ret<<").";

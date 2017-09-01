@@ -5,7 +5,7 @@ var func = function () {
 	a = 18;
 	
 	print("Before debugger");
-	debugger;
+	//debugger;
 	print("Test by Manoj");
 	a = 20;
 	a =28;
@@ -20,6 +20,9 @@ var func3 = function () {
 	var c =18;
 	//debugger;
 	func2()
+}
+var dummy = function() {
+	print("Dummy func, so pending debug request also executed");
 }
 //func3();
 //debugger;
