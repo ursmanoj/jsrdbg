@@ -103,12 +103,20 @@ void JSThread::compileAllScripts(JSContext * cx, JS::RootedObject *p_global, JST
 		//compile and execute all scripts so their functions are ready to execute anytime
 		string tmp;
 		loader.load(NULL, scripts[i],tmp);
+
+		if(i==0) {
+			//add dummy script
+			//loader.mScript.append("\r\n");
+			//TODO: find a way to append newline and then compile
+			char * dummyFunc = "\nvar processDebugCommand = function() {" "\n\tprint(\"Dummy func, so pending debug request also executed\");\n}";
+			loader.mScript.append(dummyFunc);
+		}
 		
 	    jsThread->mJssList[i] = JS_CompileScript(cx, p_global->get(), loader.mScript.c_str(), loader.mScript.length(), scripts[i].c_str(), 0);
 
 		jsval res;
 		if (!jsThread->mJssList[i]) {
-			cout << "Error compiling" << endl;
+			cout << "Error compiling scriptIndex: "<<i << endl;
 			return;   /* compilation error */
 		}
 	}	 
@@ -166,10 +174,11 @@ bool JSThread::RunScript( JSContext *cx, JSThread * jsThread) {
 			return false;   /* compilation error */
 		}
 
+		cout<<"File->FuncName: "<<scripts[jsThread->mScriptIndex]<<"->"<<jsThread->mFuncName<<" ";
 		if (JS_CallFunctionName(cx, global, jsThread->mFuncName.c_str(), 1, argv, r.address())) {
-			cout<<"File->FuncName: "<<scripts[jsThread->mScriptIndex]<<"->"<<jsThread->mFuncName<<" ";
 	    	cout<<"Successfull function call"<<endl;    
-		}
+		} else
+			cout<<"FAILED!!!!"<<endl;
 	}
 
     cout << "Application has been finished.result: "<<result << endl;
