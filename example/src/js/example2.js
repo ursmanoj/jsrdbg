@@ -1,4 +1,4 @@
-print('SpiderMonkey is the champ. ');
+print('Example 2');
 var globalVar = 1000;
 var func = function () {
 	var a = 10;

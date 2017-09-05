@@ -1,4 +1,4 @@
-print('SpiderMonkey is the champ. ');
+print('Example 3');
 var globalVar = 1000;
 var func = function () {
 	var a = 10;
@@ -19,7 +19,7 @@ var func3 = function () {
 	print("Test by Manoj3");
 	var c =18;
 	//debugger;
-	func2()
+	func2();
 }
 //func3();
 //debugger;

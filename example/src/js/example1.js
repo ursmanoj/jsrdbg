@@ -1,4 +1,4 @@
-print('SpiderMonkey is the champ. ');
+print('Example 1');
 var globalVar = 1000;
 var func = function () {
 	var a = 10;
@@ -20,6 +20,10 @@ var func3 = function () {
 	var c =18;
 	//debugger;
 	func2()
+}
+var ipFuncED = function() {
+	print("This is End Device");
+	ipFuncCB();
 }
 //func3();
 //debugger;
