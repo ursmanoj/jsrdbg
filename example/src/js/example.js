@@ -4,6 +4,10 @@ var func = function () {
 	var a = 10;
 	a = 18;
 	
+	var car = {type:"Fiat", model:"500", color:"white"};
+	
+	var nested = {mycar:car, name:"Morning"};
+	
 	print("Before debugger");
 	//debugger;
 	print("Test by Manoj");
@@ -26,7 +30,7 @@ var dummy = function() {
 }
 
 var ipFuncCB = function() {
-	print("This is Control Box");
+	print("This is Control Box from example.js");
 }
 
 var ipCmd = function() {
@@ -35,6 +39,24 @@ var ipCmd = function() {
 
 var ipEvent = function() {
 	print("This is ED Event parsing");
+}
+
+var testFunc = function() {
+	print("testFunc");
+	noVarFunc();
+}
+
+var loopFunc=  function () {
+	print("Test loopFunc");
+	var a=true;
+	
+	while(a==true) {
+		var c =18;
+		print("loop");
+		c = 20;
+		c = 10;
+		func();
+	}
 }
 //func3();
 //debugger;

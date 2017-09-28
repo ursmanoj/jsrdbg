@@ -108,8 +108,8 @@ void JSThread::compileAllScripts(JSContext * cx, JS::RootedObject *p_global, JST
 			//add dummy script
 			//loader.mScript.append("\r\n");
 			//TODO: find a way to append newline and then compile
-			char * dummyFunc = "\nvar processDebugCommand = function() {" "\n\tprint(\"Dummy func, so pending debug request also executed\");\n}";
-			loader.mScript.append(dummyFunc);
+			//char * dummyFunc = "\nvar processDebugCommand = function() {" "\n\tprint(\"Dummy func, so pending debug request also executed\");\n}";
+			//loader.mScript.append(dummyFunc);
 		}
 		
 	    jsThread->mJssList[i] = JS_CompileScript(cx, p_global->get(), loader.mScript.c_str(), loader.mScript.length(), scripts[i].c_str(), 0);
@@ -262,8 +262,8 @@ JSRemoteDebugUtil::JSRemoteDebugUtil() {
 
     //JSRemoteDebuggerCfg cfg;
 	cout<<"Setting up TCP Port for remote debugging"<<endl;
-    cfg.setTcpHost(JSR_DEFAULT_TCP_BINDING_IP);
-    cfg.setTcpPort(JSR_DEFAULT_TCP_PORT);
+    //cfg.setTcpHost(JSR_DEFAULT_TCP_BINDING_IP);
+    //cfg.setTcpPort(JSR_DEFAULT_TCP_PORT);
 	cout<<"Hopefully TCP Port setup done";
 	started = false;
 

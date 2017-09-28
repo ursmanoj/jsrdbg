@@ -25,5 +25,9 @@ var ipFuncED = function() {
 	print("This is End Device");
 	ipFuncCB();
 }
+
+function noVarFunc() {
+	print("Direct function without a var");
+}
 //func3();
 //debugger;

@@ -21,5 +21,9 @@ var func3 = function () {
 	//debugger;
 	func2()
 }
+
+var ip2FuncCB = function() {
+	print("This is Control Box from example2.js");
+}
 //func3();
 //debugger;

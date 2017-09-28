@@ -78,17 +78,6 @@ static int setupNetworkSocket(void) {
      if (newsockfd < 0) 
           error("ERROR on accept");
 	 return newsockfd;
-
-	 //for read operation
-     bzero(buffer,256);
-     n = read(newsockfd,buffer,255);
-     if (n < 0) error("ERROR reading from socket");
-     printf("Here is the message: %s\n",buffer);
-     n = write(newsockfd,"I got your message",18);
-     if (n < 0) error("ERROR writing to socket");
-     close(newsockfd);
-     close(sockfd);
-     return 0; 
 }
 
 static ssize_t
