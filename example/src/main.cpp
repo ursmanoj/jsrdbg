@@ -41,7 +41,7 @@
 
 //using namespace std;
 
-static const int number_of_threads = 4;
+static const int number_of_threads = 11;
 static JSThread *threads[number_of_threads];
 
 static void error(const char *msg)
@@ -146,7 +146,9 @@ static void * helper_thread(void *arg) {
 
 		cout<<"ContextName from socket: " << buffer <<endl;
 	 
-		int threadId = buffer[6] - '0';
+		int threadId;// = buffer[6] - '0';
+		sscanf(buffer, "Thread%d", &threadId);
+		cout<<"ThreadID: " << threadId <<endl;
 		
 		threads[threadId]->ExecuteFunction(0, "processDebugCommand");
 		//wait before next read and execute
@@ -166,8 +168,10 @@ int main(int argc, char **argv) {
 	;
 
 	for(int i=0;i<number_of_threads;i++) {
-		string name = "ThreadN";
-		name[6] = '0' + i; 
+		char cname[20];
+		sprintf(cname, "Thread%d", i); 
+		string name = cname;
+		//name[6] = '0' + i; 
 		
 		threads[i]= new JSThread(name);
 	}
